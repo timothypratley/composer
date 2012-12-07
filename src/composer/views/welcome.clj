@@ -2,6 +2,7 @@
   (:require [composer.views.common :as common])
   (:use [noir.core :only [defpage]]
         [hiccup.form]
+        [slingshot.slingshot :only [try+]]
         [composer.models.messaging :only [consume]]))
 
 (defpage "/welcome" []
@@ -15,7 +16,9 @@
                     (submit-button "submit"))))
 
 (defpage [:post "/m"] {:keys [message]}
-         (if-let [result (consume message)]
-           (common/layout result)
-           (common/layout "Error")))
+         (try+
+           (let [result (consume message)]
+             (common/layout result))
+           (catch map? m
+             (common/layout "Error:" m))))
 
