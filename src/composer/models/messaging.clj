@@ -3,28 +3,23 @@
   (:require [clojure.xml :as xml]))
 
 (def model (ref {}))
+(def equipment (ref {}))
 
 (defn collapse
   "Converts xml into a more condensed structure"
-  [x not-found]
-  (cond
-    (and (vector? x) (string? (first x))) (first x)
-    (vector? x) (let [s (map #(collapse % not-found) x)]
-                  (if (vector? (first s))   ;key-value pairs
-                    (into {} s)
-                    s))
-    (map? x) (if-let [c (x :content)]
-               (merge x (collapse c))
-               x)
-    :else x))
+  [x]
+  (let [k (:tag x)
+        a (:attrs x)
+        c (:content x)]
+  (hash-map k (apply merge a (map collapse c)))))
 
 (defn xml-collapse
   "Converts XML into a map"
-  [x not-found]
+  [x]
   (try
     (-> (java.io.ByteArrayInputStream. (.getBytes x "UTF8"))
       xml/parse
-      (collapse not-found))
+      collapse)
     (catch Exception e
       (println x)
       (throw e))))
@@ -37,20 +32,22 @@
               :container :containerNo})
 
 (defn apply-entity-event
-  [message]
-  (let [m (xml-collapse message nil)
-        type (m :tag)
-        entity (m :attrs)
-        content (m :content)
-        p (entity (primary type))
+  [m]
+  (let [t (first (keys m))
+        entity (first (vals m))
+        p (entity (primary t))
         now (java.util.Date.)]
     (if p
       (dosync
-        (alter model update-in [type p now] conj entity))
+        (alter model update-in [t p now] conj entity))
       (throw+ m))))
 
 (defmulti apply-event
-  (fn [domain event] (event :type)))
+  (fn [event] (event :type)))
+
+(defmethod apply-event nil
+  [message]
+  (apply-entity-event message))
 
 (defmethod apply-event 7012
   [message]
@@ -58,8 +55,12 @@
 
 (defmethod apply-event 8020
   [message]
-  (let [m (xml-collapse message nil)
-        e (m :Equipment)]
+  (let [e (message :Equipment)]
     (dosync
-      (alter equipment update-in [(e :Type) (e :Number)]))))
+      (alter equipment update-in [(e :Type) (e :Number)]
+             (fnil inc 0)))))
+
+(defn consume
+  [message]
+  (apply-event (xml-collapse message)))
 
