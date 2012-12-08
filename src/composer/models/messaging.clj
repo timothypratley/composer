@@ -62,5 +62,6 @@
 
 (defn consume
   [message]
-  (apply-event (xml-collapse message)))
+  (let [m (get-in (xml-collapse message) [:TideworksDataExchange :Msg :MsgData])]
+    (apply-event m)))
 

@@ -1,7 +1,8 @@
-angular.module('composer')
+angular.module('composer', [])
     .config(function ($routeProvider, $httpProvider) {
         $routeProvider
-	    .when("/message", {templateUrl: "partials/message", controller: MessageCtrl})
+	    .when("/about", {templateUrl: "/partial/about", controller: AboutCtrl})
+	    .when("/message", {templateUrl: "/partial/message", controller: MessageCtrl})
 	    .otherwise({redirectTo: "/about"});
     });
 
