@@ -1,5 +1,6 @@
 (ns composer.views.welcome
-  (:use [noir.core :only [defpage]]
+  (:use [clojure.pprint :only [pprint]]
+        [noir.core :only [defpage]]
         [hiccup.element]
         [hiccup.form]
         [hiccup.page]
@@ -72,6 +73,15 @@
            (catch map? m
              (html "Error:" m))))
 
+(defn pp-str [m] 
+  (let [w (java.io.StringWriter.)]
+    (pprint m w)
+    (.toString w)))
+
 (defpage [:post "/upload/file"] {:keys [file]}
-         (read-csv (:tempfile file)))
+         (try+
+           (html [:pre (pp-str (read-csv (:tempfile file)))])
+           (catch map? m
+             (html [:pre (pp-str m)]))))
+
 

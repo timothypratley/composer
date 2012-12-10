@@ -11,9 +11,10 @@
   
 (defn read-csv
   [file]
-  (doseq [m (map #(nth % 6)
-                 (filter (comp try-parse-int #(nth % 4 nil))
-                         (parse-csv (slurp file))))]
+  (doseq [m (map second
+                 ;(map #(nth % 6)
+                 ;(filter (comp try-parse-int #(nth % 4 nil))
+                         (parse-csv (slurp file)))]
     (consume m))
-  model)
+  @equipment)
 
