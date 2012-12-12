@@ -19,6 +19,8 @@
      [:li.divider-vertical]
      [:li (link-to "/#/about" "About")]
      [:li.divider-vertical]
+     [:li (link-to "/#/schedule" "Schedule")]
+     [:li.divider-vertical]
      [:li (link-to "/#/message" "Message")]
      [:li.divider-vertical]]
     [:div.login.ng-cloak.pull-right {:ng-show "!user.username"}
@@ -50,12 +52,19 @@
             (include-js "//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js")
             (include-js "//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js")
             (include-js "//ajax.googleapis.com/ajax/libs/angularjs/1.0.2/angular.min.js")
+            (include-js "https://www.google.com/jsapi")
+            (include-js "/js/charts.js")
             (include-js "/js/controllers.js")
             (include-js "/js/composer.js")]))
 
 (defpage "/partial/about" []
          (html
            [:p "Welcome to composer"]))
+
+(defpage "/partial/schedule" []
+         (html
+           [:p "hi"]
+           [:div {:chart "schedule"}]))
 
 (defpage "/partial/message" []
          (html

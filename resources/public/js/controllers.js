@@ -6,6 +6,10 @@ function MessageCtrl() {
 
 }
 
+function ScheduleCtrl() {
+
+}
+
 function AboutCtrl() {
 }
 
