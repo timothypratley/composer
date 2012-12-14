@@ -16,5 +16,5 @@
                  ;(filter (comp try-parse-int #(nth % 4 nil))
                          (parse-csv (slurp file)))]
     (consume m))
-  @equipment)
+  @everything)
 

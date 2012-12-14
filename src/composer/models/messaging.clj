@@ -4,6 +4,7 @@
 
 (def model (ref {}))
 (def equipment (ref {}))
+(def everything (ref {}))
 
 (defn collapse
   "Converts xml into a more condensed structure"
@@ -35,7 +36,7 @@
               :Move :Container
               :container :containerNo})
 
-(defn apply-entity-event
+(defn entity-event
   [m]
   (let [t (first (keys m))
         entity (first (vals m))
@@ -46,16 +47,33 @@
         (alter model update-in [t p now] conj entity))
       (throw+ m))))
 
+(defn merge-with-no-default
+  "Just like merge-with, but calls f even when the key is not present"
+  [f & maps]
+  (when (some identity maps)
+    (let [merge-entry (fn [m e]
+			(let [k (key e) v (val e)]
+              (assoc m k (f (get m k) v))))
+          merge2 (fn [m1 m2]
+		    (reduce merge-entry (or m1 {}) (seq m2)))]
+      (reduce merge2 maps))))
+
+(def aggregate (fn self [a b]
+  (if (map? b)
+    (merge-with-no-default self a b)
+    ((fnil conj #{}) a b))))
+
+(defn every-event
+  [m]
+  (dosync
+    (alter everything aggregate m)))
+
 (defmulti apply-event
   (fn [event] (key (first event))))
 
-(defmethod apply-event nil
+(defmethod apply-event :default
   [message]
-  (apply-entity-event message))
-
-(defmethod apply-event 7012
-  [message]
-  (apply-entity-event message))
+  (entity-event message))
 
 (defmethod apply-event :EquipmentHistory
   [message]
@@ -65,6 +83,11 @@
     (dosync
       (alter equipment update-in [(eq :Type) (eq :Number) :count]
              (fnil inc 0)))))
+
+; TODO: why does :default not work
+(defmethod apply-event :Railcar [message])
+(defmethod apply-event :Chassis [message])
+(defmethod apply-event :RailTrack [message])
 
 (defmethod apply-event :EquipmentUpdate
   [message]
@@ -78,9 +101,6 @@
   [message]
   )
 
-(defmethod apply-event :Railcar
-  [message]
-  )
 
 (defmethod apply-event :RailSchedule
   [message]
@@ -98,14 +118,6 @@
   [message]
   )
 
-(defmethod apply-event :Chassis
-  [message]
-  )
-
-(defmethod apply-event :RailTrack
-  [message]
-  )
-
 
 (defn consume
   [message]
@@ -113,6 +125,7 @@
         m (get-in x [:TideworksDataExchange :Msg :MsgData])]
     (if m
       (try+
+        (every-event m)
         (apply-event m)
         (catch map? e
           (throw+ x))

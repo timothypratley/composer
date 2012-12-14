@@ -7,7 +7,7 @@
         [slingshot.slingshot :only [try+]]
         [hiccup.core]
         [composer.models.extract]
-        [composer.models.messaging :only [consume]]))
+        [composer.models.messaging]))
 
 (def header
   [:header.navbar.navbar-fixed-top {:ng-controller "TopCtrl"}
