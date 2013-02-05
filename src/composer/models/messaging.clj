@@ -29,24 +29,6 @@
             (throw e))))
       (println "NO XML:" x))))
 
-(def assoc-sorted (fnil assoc (sorted-map)))
-
-(def primary {:Railcar :No
-              :EquipmentUpdate :Number
-              :Move :Container
-              :container :containerNo})
-
-(defn entity-event
-  [m]
-  (let [t (first (keys m))
-        entity (first (vals m))
-        p (entity (primary t))
-        now (java.util.Date.)]
-    (if p
-      (dosync
-        (alter model update-in [t p now] conj entity))
-      (throw+ m))))
-
 (defn merge-with-no-default
   "Just like merge-with, but calls f even when the key is not present"
   [f & maps]
@@ -68,12 +50,33 @@
   (dosync
     (alter everything aggregate m)))
 
-(defmulti apply-event
-  (fn [event] (key (first event))))
+(defmulti apply-event (comp key first))
+
+(def primary {:Railcar :No
+              :EquipmentUpdate :Number
+              :Move :Container
+              :container :containerNo})
+
+(defn entity-event
+  [m]
+  (let [t (first (keys m))
+        entity (first (vals m))
+        p (entity (primary t))
+        now (java.util.Date.)]
+    (if p
+      (dosync
+        (alter model update-in [t p now] conj entity))
+      (throw+ m))))
 
 (defmethod apply-event :default
   [message]
   (entity-event message))
+
+;; These are handled by the default entity-event
+#_(defmethod apply-event :Railcar [message])
+#_(defmethod apply-event :EquipmentUpdate [message])
+#_(defmethod apply-event :Move [message])
+
 
 (defmethod apply-event :EquipmentHistory
   [message]
@@ -84,31 +87,21 @@
       (alter equipment update-in [(eq :Type) (eq :Number) :count]
              (fnil inc 0)))))
 
-; TODO: why does :default not work
-(defmethod apply-event :Railcar [message])
 (defmethod apply-event :Chassis [message])
 (defmethod apply-event :RailTrack [message])
+(defmethod apply-event :Mission [message])
 
-(defmethod apply-event :EquipmentUpdate
-  [message]
-  )
 
 (defmethod apply-event :MoveComplete
   [message]
   )
 
-(defmethod apply-event :Move
-  [message]
-  )
 
 
 (defmethod apply-event :RailSchedule
   [message]
   )
 
-(defmethod apply-event :Mission
-  [message]
-  )
 
 (defmethod apply-event :MissionTaskUpdate
   [message]

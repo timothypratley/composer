@@ -14,7 +14,7 @@
    [:div.navbar-inner
     [:a.brand {:href "/#/"}
      [:img {:src "/img/favicon.ico" :width "20" :height "20"}]
-     [:strong "oneup"]]
+     [:strong "Composer"]]
     [:ul.nav
      [:li.divider-vertical]
      [:li (link-to "/#/about" "About")]
@@ -22,6 +22,12 @@
      [:li (link-to "/#/schedule" "Schedule")]
      [:li.divider-vertical]
      [:li (link-to "/#/message" "Message")]
+     [:li.divider-vertical]
+     [:li (link-to "/equipment" "Equipment")]
+     [:li.divider-vertical]
+     [:li (link-to "/everything" "Everything")]
+     [:li.divider-vertical]
+     [:li (link-to "/model" "Model")]
      [:li.divider-vertical]]
     [:div.login.ng-cloak.pull-right {:ng-show "!user.username"}
      (link-to "/#/register" "Register")
@@ -91,6 +97,11 @@
          (try+
            (html [:pre (pp-str (read-csv (:tempfile file)))])
            (catch map? m
-             (html [:pre (pp-str m)]))))
+             (html [:h2 "Error"] [:pre (pp-str m)]))))
 
+(defpage "/model" []
+         (html [:pre (pp-str @model)]))
+
+(defpage "/equipment" []
+         (html [:pre (pp-str @equipment)]))
 
