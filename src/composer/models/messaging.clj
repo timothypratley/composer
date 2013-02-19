@@ -1,18 +1,20 @@
 (ns composer.models.messaging
-  (:use [slingshot.slingshot :only [try+ throw+]])
+  (:use [slingshot.slingshot :only [try+ throw+]]
+        [composer.models.store])
   (:require [clojure.xml :as xml]))
 
 (def model (ref {}))
 (def equipment (ref {}))
 (def everything (ref {}))
 
+; TODO: I'd like to make this reverse compatible with hiccup, just because
 (defn collapse
   "Converts xml into a more condensed structure"
   [x]
   (let [k (:tag x)
         a (:attrs x)
         c (:content x)]
-  (hash-map k (apply merge a (map collapse c)))))
+    (hash-map k (apply merge a (map collapse c)))))
 
 (defn xml-collapse
   "Converts XML into a map"
@@ -80,12 +82,20 @@
 
 (defmethod apply-event :EquipmentHistory
   [message]
-  ; none in this data set
-  (if-let [eq (or (get-in message [:EquipmentHistory :Destination :Equipment])
-                  (get-in message [:EquipmentHistory :Source :Equipment]))]
-    (dosync
-      (alter equipment update-in [(eq :Type) (eq :Number) :count]
-             (fnil inc 0)))))
+  ;(dosync
+    (let [t (get-in message [:EquipmentHistory :TransitionTime])
+          container (get-in message [:EquipmentHistory :Container :Number])
+          source (get-in message [:EquipmentHistory :Source])
+          destination (get-in message [:EquipmentHistory :Destination])
+          update (fn [eq action at]
+              (alter equipment update-in [(eq :Type) (eq :Number) :history]
+                     conj [t action at]))]
+      (if-let [eq (source :Equipment)]
+        ;(update eq :place destination)
+        (place eq destination))
+      (if-let [eq (destination :Equipment)]
+        ;(update eq :pick source)
+        (pick eq source))))
 
 (defmethod apply-event :Chassis [message])
 (defmethod apply-event :RailTrack [message])
@@ -120,8 +130,8 @@
       (try+
         (every-event m)
         (apply-event m)
-        (catch map? e
-          (throw+ x))
+        ;(catch map? e
+          ;(throw+ x))
         (catch Exception ex
           (println x)
           (throw ex))))))
