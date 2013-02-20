@@ -2,6 +2,8 @@
   (:use [clojure.test]
         [composer.models.store]))
 
-(pick {:Number "WSC1"} {:Number "CBHU1234567"} {:Block "TTR"})
-(place {:Number "WSC1"} {:Number "CBHU1234567"} {:Railcar "TTXX2233"})
+(deftest store-tests
+         (testing "store api"
+                  (pick "WSC1" "CBHU1234567" :equipment "UTR1")
+                  (place "WSC1" "CBHU1234567" :railcar "TTXX2233")))
 

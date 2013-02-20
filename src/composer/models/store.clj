@@ -29,10 +29,13 @@
   (nodes/find "container" name))
 
 (defn pick
-  [eq container destination]
-  (let [from (or (nodes/find "Equipment" "Number" eq) (nodes/create eq ["Equipment"]))
-        ;to (or (nodes/find "Equipment" "Number" dest) (nodes/create dest ["Container"]))
-        c (or (nodes/find "Container" "Number" container) (nodes/create container ["Container"]))]
+  [eq container t n]
+  (let [from (or (nodes/find "equipment" "name" eq)
+                 (nodes/create-unique-in-index "equipment" "name" eq {}))
+        c (or (nodes/find "container" "name" container)
+              (nodes/create-unique-in-index "container" "name" container {}))
+        to (or (nodes/find "equipment" "name" destination)
+               (nodes/create-unique-in-index "container" "name" destination {}))]
     (relationships/create from to :links)))
 
 (defn place
