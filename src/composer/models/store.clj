@@ -24,23 +24,51 @@
 
 (neorest/connect! "http://localhost:7474/db/data/")
 
+(defn neoupdate
+  [idx keyname keyvalue]
+  (nodes/create-unique-in-index idx keyname keyvalue {}))
+
 (defn container
-  [name properties]
-  (nodes/find "container" name))
+  [name]
+  (neoupdate "container" "name" name))
+
+(defn equipment
+  [name]
+  (neoupdate "equipment" "name" name))
+
+(defn location
+  [name]
+  (neoupdate "location" "name" name))
+
+;TODO why is set not supported?
+(defn relation
+  [a b label]
+  (println a)
+  (println b)
+  (relationships/maybe-create a b label {:at []}))
+
+(defn update
+  [rel t]
+  (relationships/update rel {:at t}))
+  ;(relationships/update rel (update-in (rel :data) [:at] conj t)))
+
+; TODO: this should be in a transaction
+(defn container-update
+  [eq c source t action passive where]
+  (let [e (equipment eq)
+        c (container c)
+        n (cond
+            (source :Equipment) (equipment (source :Equipment :Number))
+            (source :Location) (location (source :Location)))]
+    (update (relation e c action) t)
+    (update (relation n c passive) t)
+    (update (relation e n where) t)))
 
 (defn pick
-  [eq container t n]
-  (let [from (or (nodes/find "equipment" "name" eq)
-                 (nodes/create-unique-in-index "equipment" "name" eq {}))
-        c (or (nodes/find "container" "name" container)
-              (nodes/create-unique-in-index "container" "name" container {}))
-        to (or (nodes/find "equipment" "name" destination)
-               (nodes/create-unique-in-index "container" "name" destination {}))]
-    (relationships/create from to :links)))
+  [eq container source t]
+  (container-update eq container source t :picked :gave :picked-from))
 
 (defn place
-  [eq container]
-  (let [from (nodes/create eq)
-        to (nodes/create {:no "TIM12345"})]
-    (relationships/create from to :links)))
+  [eq container destination t]
+  (container-update eq container destination t :placed :received :placed-at))
 
