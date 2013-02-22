@@ -92,10 +92,10 @@
                      conj [t action at]))]
       (if-let [eq (source :Equipment)]
         ;(update eq :place destination)
-        (place eq destination t))
+        (place eq container destination t))
       (if-let [eq (destination :Equipment)]
         ;(update eq :pick source)
-        (pick eq source t))))
+        (pick eq container source t))))
 
 (defmethod apply-event :Chassis [message])
 (defmethod apply-event :RailTrack [message])

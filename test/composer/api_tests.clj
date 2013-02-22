@@ -4,6 +4,7 @@
 
 (deftest store-tests
          (testing "store api"
-                  (pick "WSC1" "CBHU1234567" :equipment "UTR1")
-                  (place "WSC1" "CBHU1234567" :railcar "TTXX2233")))
+                  (let [now (.getTime (java.util.Date.))]
+                    (pick "WSC1" "CBHU1234567" {:Equipment "UTR1"} now)
+                    (place "WSC1" "CBHU1234567" {:Location "TTXX2233"} now))))
 

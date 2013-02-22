@@ -24,42 +24,41 @@
 
 (neorest/connect! "http://localhost:7474/db/data/")
 
-(defn neoupdate
+(defn- neoupdate
   [idx keyname keyvalue]
-  (nodes/create-unique-in-index idx keyname keyvalue {}))
+  (nodes/create-unique-in-index idx keyname keyvalue {:name keyvalue}))
 
-(defn container
+(defn- container
   [name]
   (neoupdate "container" "name" name))
 
-(defn equipment
+(defn- equipment
   [name]
   (neoupdate "equipment" "name" name))
 
-(defn location
+(defn- location
   [name]
   (neoupdate "location" "name" name))
 
 ;TODO why is set not supported?
-(defn relation
+(defn- relation
   [a b label]
-  (println a)
-  (println b)
-  (relationships/maybe-create a b label {:at []}))
+  (relationships/maybe-create a b label))
 
-(defn update
+;TODO: using a set makes an assumption that two events for the same relation will not occur in the same timestamp
+;this is useful for idempotency, but is this a safe assumption?
+(defn- update
   [rel t]
-  (relationships/update rel {:at t}))
-  ;(relationships/update rel (update-in (rel :data) [:at] conj t)))
+  (relationships/update rel (update-in (:data rel) [:at] (fnil conj #{}) t)))
 
 ; TODO: this should be in a transaction
-(defn container-update
+(defn- container-update
   [eq c source t action passive where]
-  (let [e (equipment eq)
+  (let [e (equipment (eq :Number))
         c (container c)
         n (cond
-            (source :Equipment) (equipment (source :Equipment :Number))
-            (source :Location) (location (source :Location)))]
+            (source :Equipment) (equipment (get-in source [:Equipment :Number]))
+            (source :Location) (location (str (source :Location))))]
     (update (relation e c action) t)
     (update (relation n c passive) t)
     (update (relation e n where) t)))
