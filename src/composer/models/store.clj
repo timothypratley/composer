@@ -15,6 +15,11 @@
 ; to capture updates, we need a relation from users to entities with the update contents
 ; the entities themselves can contain the current values of properties
 ; but is ugly for real number values of E2
+; instead have change relations to users
+;
+; Does it matter if I have multiple relations instead of a set of times per relation?
+; multiple relations seems easier to query
+; but a set is easier to make idempotent
 
 
 (ns composer.models.store

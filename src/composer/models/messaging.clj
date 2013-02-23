@@ -83,7 +83,9 @@
 (defmethod apply-event :EquipmentHistory
   [message]
   ;(dosync
-    (let [t (get-in message [:EquipmentHistory :TransitionTime])
+    ;TODO: why does having Z at the end of the pattern cause unparsable???
+    (let [df (java.text.SimpleDateFormat. "yyyy-MM-dd'T'HH:mm:ss")
+          t (.getTime (.parse df (get-in message [:EquipmentHistory :TransitionTime])))
           container (get-in message [:EquipmentHistory :Container :Number])
           source (get-in message [:EquipmentHistory :Source])
           destination (get-in message [:EquipmentHistory :Destination])
