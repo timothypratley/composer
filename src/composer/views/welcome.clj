@@ -7,19 +7,27 @@
         [slingshot.slingshot :only [try+]]
         [hiccup.core]
         [composer.models.extract]
-        [composer.models.messaging :only [consume]]))
+        [composer.models.messaging]))
 
 (def header
   [:header.navbar.navbar-fixed-top {:ng-controller "TopCtrl"}
    [:div.navbar-inner
     [:a.brand {:href "/#/"}
      [:img {:src "/img/favicon.ico" :width "20" :height "20"}]
-     [:strong "oneup"]]
+     [:strong "Composer"]]
     [:ul.nav
      [:li.divider-vertical]
      [:li (link-to "/#/about" "About")]
      [:li.divider-vertical]
+     [:li (link-to "/#/schedule" "Schedule")]
+     [:li.divider-vertical]
      [:li (link-to "/#/message" "Message")]
+     [:li.divider-vertical]
+     [:li (link-to "/equipment" "Equipment")]
+     [:li.divider-vertical]
+     [:li (link-to "/everything" "Everything")]
+     [:li.divider-vertical]
+     [:li (link-to "/model" "Model")]
      [:li.divider-vertical]]
     [:div.login.ng-cloak.pull-right {:ng-show "!user.username"}
      (link-to "/#/register" "Register")
@@ -50,12 +58,19 @@
             (include-js "//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js")
             (include-js "//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js")
             (include-js "//ajax.googleapis.com/ajax/libs/angularjs/1.0.2/angular.min.js")
+            (include-js "https://www.google.com/jsapi")
+            (include-js "/js/charts.js")
             (include-js "/js/controllers.js")
             (include-js "/js/composer.js")]))
 
 (defpage "/partial/about" []
          (html
            [:p "Welcome to composer"]))
+
+(defpage "/partial/schedule" []
+         (html
+           [:p "hi"]
+           [:div {:chart "schedule"}]))
 
 (defpage "/partial/message" []
          (html
@@ -82,6 +97,11 @@
          (try+
            (html [:pre (pp-str (read-csv (:tempfile file)))])
            (catch map? m
-             (html [:pre (pp-str m)]))))
+             (html [:h2 "Error"] [:pre (pp-str m)]))))
 
+(defpage "/model" []
+         (html [:pre (pp-str @model)]))
+
+(defpage "/equipment" []
+         (html [:pre (pp-str @equipment)]))
 

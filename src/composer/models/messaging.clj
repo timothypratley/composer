@@ -1,17 +1,20 @@
 (ns composer.models.messaging
-  (:use [slingshot.slingshot :only [try+ throw+]])
+  (:use [slingshot.slingshot :only [try+ throw+]]
+        [composer.models.store])
   (:require [clojure.xml :as xml]))
 
 (def model (ref {}))
 (def equipment (ref {}))
+(def everything (ref {}))
 
+; TODO: I'd like to make this reverse compatible with hiccup, just because
 (defn collapse
   "Converts xml into a more condensed structure"
   [x]
   (let [k (:tag x)
         a (:attrs x)
         c (:content x)]
-  (hash-map k (apply merge a (map collapse c)))))
+    (hash-map k (apply merge a (map collapse c)))))
 
 (defn xml-collapse
   "Converts XML into a map"
@@ -28,14 +31,35 @@
             (throw e))))
       (println "NO XML:" x))))
 
-(def assoc-sorted (fnil assoc (sorted-map)))
+(defn merge-with-no-default
+  "Just like merge-with, but calls f even when the key is not present"
+  [f & maps]
+  (when (some identity maps)
+    (let [merge-entry (fn [m e]
+			(let [k (key e) v (val e)]
+              (assoc m k (f (get m k) v))))
+          merge2 (fn [m1 m2]
+		    (reduce merge-entry (or m1 {}) (seq m2)))]
+      (reduce merge2 maps))))
+
+(def aggregate (fn self [a b]
+  (if (map? b)
+    (merge-with-no-default self a b)
+    ((fnil conj #{}) a b))))
+
+(defn every-event
+  [m]
+  (dosync
+    (alter everything aggregate m)))
+
+(defmulti apply-event (comp key first))
 
 (def primary {:Railcar :No
               :EquipmentUpdate :Number
               :Move :Container
               :container :containerNo})
 
-(defn apply-entity-event
+(defn entity-event
   [m]
   (let [t (first (keys m))
         entity (first (vals m))
@@ -46,63 +70,56 @@
         (alter model update-in [t p now] conj entity))
       (throw+ m))))
 
-(defmulti apply-event
-  (fn [event] (key (first event))))
-
-(defmethod apply-event nil
+(defmethod apply-event :default
   [message]
-  (apply-entity-event message))
+  (entity-event message))
 
-(defmethod apply-event 7012
-  [message]
-  (apply-entity-event message))
+;; These are handled by the default entity-event
+#_(defmethod apply-event :Railcar [message])
+#_(defmethod apply-event :EquipmentUpdate [message])
+#_(defmethod apply-event :Move [message])
+
 
 (defmethod apply-event :EquipmentHistory
   [message]
-  ; none in this data set
-  (if-let [eq (or (get-in message [:EquipmentHistory :Destination :Equipment])
-                  (get-in message [:EquipmentHistory :Source :Equipment]))]
-    (dosync
-      (alter equipment update-in [(eq :Type) (eq :Number) :count]
-             (fnil inc 0)))))
+  ;(dosync
+    ;TODO: why does having Z at the end of the pattern cause unparsable???
+    (let [df (java.text.SimpleDateFormat. "yyyy-MM-dd'T'HH:mm:ss")
+          t (.getTime (.parse df (get-in message [:EquipmentHistory :TransitionTime])))
+          container (get-in message [:EquipmentHistory :Container :Number])
+          source (get-in message [:EquipmentHistory :Source])
+          destination (get-in message [:EquipmentHistory :Destination])
+          update (fn [eq action at]
+              (alter equipment update-in [(eq :Type) (eq :Number) :history]
+                     conj [t action at]))]
+      (if-let [eq (source :Equipment)]
+        ;(update eq :place destination)
+        (place eq container destination t))
+      (if-let [eq (destination :Equipment)]
+        ;(update eq :pick source)
+        (pick eq container source t))))
 
-(defmethod apply-event :EquipmentUpdate
-  [message]
-  )
+(defmethod apply-event :Chassis [message])
+(defmethod apply-event :RailTrack [message])
+(defmethod apply-event :Mission [message])
+
 
 (defmethod apply-event :MoveComplete
   [message]
   )
 
-(defmethod apply-event :Move
-  [message]
-  )
 
-(defmethod apply-event :Railcar
-  [message]
-  )
 
 (defmethod apply-event :RailSchedule
   [message]
   )
 
-(defmethod apply-event :Mission
-  [message]
-  )
 
 (defmethod apply-event :MissionTaskUpdate
   [message]
   )
 
 (defmethod apply-event :TransferLocation
-  [message]
-  )
-
-(defmethod apply-event :Chassis
-  [message]
-  )
-
-(defmethod apply-event :RailTrack
   [message]
   )
 
@@ -113,9 +130,10 @@
         m (get-in x [:TideworksDataExchange :Msg :MsgData])]
     (if m
       (try+
+        (every-event m)
         (apply-event m)
-        (catch map? e
-          (throw+ x))
+        ;(catch map? e
+          ;(throw+ x))
         (catch Exception ex
           (println x)
           (throw ex))))))
